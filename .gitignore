@@ -1,6 +1,7 @@
 *.gb
 *.noi
 *.map
+*.sav
 
 .idea
 cmake-build-debug
