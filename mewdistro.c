@@ -433,7 +433,6 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 if((*counter) == 197) {
                     trade_state = TRADE_WAIT;
                 }
-                (*counter) = 0;
             } else if(trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
                 if (in == 0x6f) {
                     trade_state = READY;
@@ -477,8 +476,7 @@ void main(void)
     set_interrupts(SIO_IFLAG);          // disable other interrupts. note: this disables sprite movement
 
     puts("\n  Mew Distribution");
-    puts("    Madrid  2000\n\n");
-    puts(" Reset: Press Start\n\n\n\n\n\n\n\n\n");
+    puts("    Madrid  2000\n\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
 
     // Load Mew tiles starting at position 128.
@@ -518,11 +516,5 @@ void main(void)
 		__endasm;
 
         while(_io_status == IO_RECEIVING || _io_status == IO_SENDING);
-        
-        if (joypad() == J_START) {
-            connection_state = NOT_CONNECTED;
-            trade_state = INIT;
-			fill_pokemon_team();
-        }
     }
 }
