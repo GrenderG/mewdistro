@@ -81,17 +81,17 @@ uint8_t INPUT_BLOCK[418];
 uint8_t DATA_BLOCK[418];
 int trade_pokemon = -1;
 unsigned char name[11] = {
-    pokechar_D, 
-    pokechar_hyphen, 
-    pokechar_J, 
+    pokechar_E,
+    pokechar_U,
+    pokechar_R,
+    pokechar_O,
+    pokechar_P,
+    pokechar_E,
     pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
-	pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
 };
 unsigned char nicknames[11] = {
     // Pokemon Nickname
@@ -257,14 +257,14 @@ uint16_t get_ram_seed(void)
     uint16_t sum = 0;
     for (uint16_t i = 0; i < 0x1FFF; i++)
     {
-		sum ^= p[i];
+        sum ^= p[i];
     }
     return sum;
 }
 
 void fill_pokemon_team(void)
 {
-	    /**
+    /**
      * Trader Packet Init
      */
     struct TraderPacket traderPacket;
@@ -277,12 +277,27 @@ void fill_pokemon_team(void)
     for (size_t i = 0; i < 6; i++) {
         pSelectedPokemon->pokemon[i] = MEW;
     }
-	
-	// Read from RAM to generate the seed (from 0xC000 to 0xDFFF)
-	initrand(get_ram_seed());
-	
+    
+    // Read from RAM to generate the seed (from 0xC000 to 0xDFFF)
+    initrand(get_ram_seed());
+    
     for (size_t i = 0; i < 6; i++) {
         struct PartyMember *pPartyMember = &traderPacket.pokemon[i];
+        // Mimicking this Mew:
+        // - https://github.com/projectpokemon/EventsGallery/tree/master/Released/Gen%201/Classic/International/2000%20Spanish%20Pok%C3%A9mon%20Championship
+        // - https://projectpokemon.org/home/forums/topic/37431-gen-i-v-event-contributions-thread/?do=findComment&comment=254958
+        // - https://www.math.miami.edu/~jam/azure/forum/tuff/ultimatebb.php?ubb=get_topic;f=6;t=000256
+        //
+        // D-J one is not clear that it was legit, only EUROPE. Notes from Suloku about D-J one:
+        //
+        // El caso es que al final apareció el verdadero mew que repartieron en madrid, OT EUROPE.
+        // Lo tenía un jugador que después de muchos años volvio a pokemon, y ya en la época tenía métodos de backup de
+        // partida en gameboy, incluso estaba registrado en un foro de la época (inglés) donde había mensaje suyos
+        // hablando de ir al torneo etc, todo verificado así que en principio ese mew es el que realmente repartieron.
+        // El mew D-J...sigo pensando que efectivamente rondaba por madrid en el parque de atracciones, pero "repartido"
+        // a base de clonaciones. O quien sabe, puede que alguien cambiara su mew hack al repartidor oficial del evento
+        // y este se lo diera a otro jugador al ver que era un mew.
+
         pPartyMember->pokemon = MEW;
         pPartyMember->current_hp = 25;
         pPartyMember->max_hp = 25;
@@ -295,7 +310,7 @@ void fill_pokemon_team(void)
         pPartyMember->move2 = 0x0;
         pPartyMember->move3 = 0x0;
         pPartyMember->move4 = 0x0;
-        pPartyMember->original_trainer_id = (randw() % (65535 - 60000 + 1)) + 60000;
+        pPartyMember->original_trainer_id = (randw() % 65535) + 1;
 
         // -   Experience is complicated. You must look up the Pokemon you are trying to trade
         //      in the following table and apply the experience points that match the level.
@@ -316,10 +331,10 @@ void fill_pokemon_team(void)
 
         // IVs are a 4 bit number, so the max value is 15 (0-15 = 0b0000-0b1111 = 0x0-0xF)
         // These have been broken out for legibility, but will be condensed to only 2 bytes
-        pPartyMember->attack_iv = 6;
-        pPartyMember->defense_iv = 4;
-        pPartyMember->speed_iv = 3;
-        pPartyMember->special_iv = 8;
+        pPartyMember->attack_iv = 10;
+        pPartyMember->defense_iv = 1;
+        pPartyMember->speed_iv = 12;
+        pPartyMember->special_iv = 5;
 
         pPartyMember->move1_pp = 35;
         pPartyMember->move2_pp = 0;
@@ -396,6 +411,10 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
 
         case TRADE_CENTRE:
             if(trade_state == INIT && in == 0x00) {
+                // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
+                // can be moved somewhere else to only be called once).
+                fill_pokemon_team();
+
                 trade_state = READY;
                 out[0] = 0x00;
             } else if(trade_state == READY && in == 0xFD) {
@@ -475,17 +494,15 @@ void main(void)
     }
     set_interrupts(SIO_IFLAG);          // disable other interrupts. note: this disables sprite movement
 
-    puts("\n  Mew Distribution");
-    puts("    Madrid  2000\n\n\n\n\n\n\n\n\n\n\n\n");
+    puts("\n  MEW DISTRIBUTION");
+    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
 
     // Load Mew tiles starting at position 128.
-	set_bkg_data(128, 20, mew_tiles);
+    set_bkg_data(128, 20, mew_tiles);
     // Draw Mew figure in the middle of the screen (more or less).
-	set_bkg_tiles(7, 7, 5, 5, mew_map);
-	
-	fill_pokemon_team();
-	//printf("%u\n", (randw() % (65535 - 60000 + 1)) + 60000);
+    set_bkg_tiles(7, 7, 5, 5, mew_map);
+
     size_t trade_counter = 0;
     while(1) {
         uint8_t in = _io_in;
@@ -505,15 +522,15 @@ void main(void)
         // See https://www.reddit.com/r/retrogamedev/comments/16f4myt/i_homebrewed_a_pokemon_gen_1_mew_distribution/
         // and https://github.com/gbdk-2020/gbdk-2020/pull/577
         __asm
-			LD	A,#0x02         ; .IO_RECEIVING
-			LD	(__io_status),A ; Store status
-			LD	A,#0x01
-			LDH	(0x02),A		; (.SC) Use external clock
-			LD	A,(__io_out)
-			LDH	(0x01),A		; (.SB) Send __io_out byte
-			LD	A,#0x81
-			LDH	(0x02),A		; (.SC) Use external clock
-		__endasm;
+            LD    A,#0x02         ; .IO_RECEIVING
+            LD    (__io_status),A ; Store status
+            LD    A,#0x01
+            LDH    (0x02),A        ; (.SC) Use external clock
+            LD    A,(__io_out)
+            LDH    (0x01),A        ; (.SB) Send __io_out byte
+            LD    A,#0x81
+            LDH    (0x02),A        ; (.SC) Use external clock
+        __endasm;
 
         while(_io_status == IO_RECEIVING || _io_status == IO_SENDING);
     }
