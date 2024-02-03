@@ -482,7 +482,7 @@ void main(void)
     // Load Mew tiles starting at position 128.
 	set_bkg_data(128, 20, mew_tiles);
     // Draw Mew figure in the middle of the screen (more or less).
-	set_bkg_tiles(7, 8, 5, 5, mew_map);
+	set_bkg_tiles(7, 7, 5, 5, mew_map);
 	
 	fill_pokemon_team();
 	//printf("%u\n", (randw() % (65535 - 60000 + 1)) + 60000);
