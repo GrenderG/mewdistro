@@ -67,7 +67,7 @@ const unsigned char mew_tiles[] =
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-// It has +128 since we are loading Mew sprites starting at position 128 
+// It has +128 since we are loading Mew sprites starting at position 128
 // to prevent collisions with the font sprites.
 const unsigned char mew_map[] =
 {
@@ -96,17 +96,17 @@ unsigned char name[11] = {
 };
 unsigned char nicknames[11] = {
     // Pokemon Nickname
-    pokechar_M, 
-    pokechar_E, 
-    pokechar_W, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
+    pokechar_M,
+    pokechar_E,
+    pokechar_W,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
 };
 
 typedef struct TraderPacket {
@@ -227,14 +227,14 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
     for (size_t i = 0; i < PARTY_SIZE; i++) {
         uint8_t poke[POKE_SIZE];
         party_member_to_bytes(&pTraderPacket->pokemon[i], poke);
-        
+
         // Full Party Data (all stats and such)
         for (size_t j = 0; j < POKE_SIZE; j++) {
             pokemon_bytes[(i * POKE_SIZE) + j] = (uint8_t) poke[j];
         }
     }
     selected_pokemon_to_bytes(&pTraderPacket->selected_pokemon, selected_pokemon_bytes);
-    
+
 
     for (size_t i = 0; i < PARTY_SIZE; i++) {
         for (size_t j = 0; j < NAME_LEN; j++) {
@@ -276,7 +276,7 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
 }
 
 // get a seed to be used for random generation by xoring values from ram which are pseudorandom on startup.
-uint16_t get_ram_seed(void) 
+uint16_t get_ram_seed(void)
 {
     uint16_t* p = (uint16_t*) 0xC000;
     uint16_t sum = 0;
@@ -302,7 +302,7 @@ void fill_pokemon_team(void)
     for (size_t i = 0; i < 6; i++) {
         pSelectedPokemon->pokemon[i] = MEW;
     }
-    
+
     for (size_t i = 0; i < 6; i++) {
         struct PartyMember *pPartyMember = &traderPacket.pokemon[i];
         // Mimicking this Mew:
@@ -381,13 +381,13 @@ void fill_pokemon_team(void)
             traderPacket.pokemon_nicknames[i][j] = nicknames[j];
         }
     }
-    
+
     trader_packet_to_bytes(&traderPacket, DATA_BLOCK);
 }
 
 uint8_t handle_byte(uint8_t in, size_t *counter) {
     uint8_t out[1];
-    
+
     switch (connection_state)
     {
         case NOT_CONNECTED:
@@ -426,7 +426,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                     connection_state = NOT_CONNECTED;
                     out[0] = PKMN_BREAK_LINK;
                     break;
-                
+
                 default:
                     out[0] = in;
                     break;
@@ -508,7 +508,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 out[0] = in;
             }
             break;
-        
+
         default:
             out[0] = in;
             break;
@@ -517,12 +517,16 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
     return out[0];
 }
 
+uint8_t linkcable_trade_byte(uint8_t data) {
+    SB_REG = data;
+    SC_REG = SIOF_XFER_START | SIOF_CLOCK_INT;
+    while (SC_REG & SIOF_XFER_START);
+    return SB_REG;
+}
+
 void main(void)
 {
-    CRITICAL {
-        add_SIO(nowait_int_handler);    // disable waiting VRAM state before return
-    }
-    set_interrupts(SIO_IFLAG);          // disable other interrupts. note: this disables sprite movement
+    disable_interrupts();
 
     // Read from RAM to generate the seed (from 0xC000 to 0xDFFF) for later pseudo-random TID generation.
     initrand(get_ram_seed());
@@ -539,34 +543,20 @@ void main(void)
     set_bkg_tiles(7, 6, 5, 5, mew_map);
 
     size_t trade_counter = 0;
-    while(1) {
-        uint8_t in = _io_in;
-        
-        _io_out = handle_byte(in, &trade_counter);
+    uint8_t _in, _out = 0x00;
+    while(TRUE) {
+        _in = linkcable_trade_byte(_out);
 
-        // No-Op loop to delay the bytes being sent.
         // We do this because the serial interface halts operations on
-        // the other Gameboy and freezes the game, so we need to give it
+        // the other Game Boy and freezes the game, so we need to give it
         // time to think.
-        for (int i = 0; i < 500; i++) {
-            __asm
-                NOP
-            __endasm;
-        }
-
-        // See https://www.reddit.com/r/retrogamedev/comments/16f4myt/i_homebrewed_a_pokemon_gen_1_mew_distribution/
-        // and https://github.com/gbdk-2020/gbdk-2020/pull/577
         __asm
-            LD    A,#0x02         ; .IO_RECEIVING
-            LD    (__io_status),A ; Store status
-            LD    A,#0x01
-            LDH    (0x02),A        ; (.SC) Use external clock
-            LD    A,(__io_out)
-            LDH    (0x01),A        ; (.SB) Send __io_out byte
-            LD    A,#0x81
-            LDH    (0x02),A        ; (.SC) Use external clock
+            .rept 16
+                push hl
+                pop  hl
+            .endm
         __endasm;
 
-        while(_io_status == IO_RECEIVING || _io_status == IO_SENDING);
+        _out = handle_byte(_in, &trade_counter);
     }
 }
