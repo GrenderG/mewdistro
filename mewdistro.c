@@ -435,9 +435,9 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
 
         case TRADE_CENTRE:
             if(trade_state == INIT && in == 0x00) {
+                print_log("Waiting...");
                 // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
                 // can be moved somewhere else to only be called once).
-                print_log("Waiting...");
                 fill_pokemon_team();
 
                 trade_state = READY;
