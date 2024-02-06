@@ -2,8 +2,9 @@
 #include <gb/hardware.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <rand.h>
-//#include <gbdk/console.h>
+#include <gbdk/console.h>
 
 #include "gen1.h"
 
@@ -117,6 +118,30 @@ typedef struct TraderPacket {
     unsigned char original_trainer_names[6][11];
     unsigned char pokemon_nicknames[6][11];
 } TraderPacket;
+
+void print_log(const char *__s) {
+    size_t max_length = 17; // 19 - ": " length
+    char __trimmed[18]; // max_length characters + 1 for null terminator.
+    size_t len = strlen(__s);
+    size_t i;
+
+    // Copy characters up to max_length or until the end of the string.
+    for (i = 0; i < max_length && i < len; ++i) {
+        __trimmed[i] = __s[i];
+    }
+
+    // Fill the remaining space with empty spaces.
+    for (; i < max_length; ++i) {
+        __trimmed[i] = ' ';
+    }
+
+    // Null-terminate the string.
+    __trimmed[max_length] = '\0';
+
+    // Reset cursor position.
+    gotoxy(1, 16);
+    printf(": %s", __trimmed);
+}
 
 void party_member_to_bytes(struct PartyMember *pPartyMember, uint8_t *out) {
     uint8_t res[44] = {
@@ -413,6 +438,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             if(trade_state == INIT && in == 0x00) {
                 // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
                 // can be moved somewhere else to only be called once).
+                print_log("Waiting...");
                 fill_pokemon_team();
 
                 trade_state = READY;
@@ -424,6 +450,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 out[0] = in;
                 trade_state = DATA_TX_RANDOM;
             } else if(trade_state == DATA_TX_RANDOM && in == 0xFD) {
+                print_log("Sending data...");
                 trade_state = DATA_TX_WAIT;
                 out[0] = 0xFD;
                 (*counter) = 0;
@@ -454,9 +481,11 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 }
             } else if(trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
                 if (in == 0x6f) {
+                    print_log("Waiting...");
                     trade_state = READY;
                     out[0] = 0x6f;
                 } else {
+                    print_log("Selecting...");
                     out[0] = 0x60;
                     trade_pokemon = in - 0x60;
                 }
@@ -466,12 +495,14 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             } else if(trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
                 out[0] = in;
                 if (in  == 0x61) {
+                    print_log("Waiting...");
                     trade_pokemon = -1;
                     trade_state = TRADE_WAIT;
                 } else {
                     trade_state = DONE;
                 }
             } else if(trade_state == DONE && in == 0x00) {
+                print_log("Finishing...");
                 out[0] = 0;
                 trade_state = INIT;
             } else {
@@ -495,13 +526,15 @@ void main(void)
     set_interrupts(SIO_IFLAG);          // disable other interrupts. note: this disables sprite movement
 
     puts("\n  MEW DISTRIBUTION");
-    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
+
+    print_log("Ready");
 
     // Load Mew tiles starting at position 128.
     set_bkg_data(128, 20, mew_tiles);
     // Draw Mew figure in the middle of the screen (more or less).
-    set_bkg_tiles(7, 7, 5, 5, mew_map);
+    set_bkg_tiles(7, 6, 5, 5, mew_map);
 
     size_t trade_counter = 0;
     while(1) {
@@ -510,12 +543,12 @@ void main(void)
         _io_out = handle_byte(in, &trade_counter);
 
         // No-Op loop to delay the bytes being sent.
-        // We do this because the serial interface halts operations on 
+        // We do this because the serial interface halts operations on
         // the other Gameboy and freezes the game, so we need to give it
         // time to think.
         for (int i = 0; i < 500; i++) {
             __asm
-                NOP
+            NOP
             __endasm;
         }
 
