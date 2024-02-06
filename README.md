@@ -11,5 +11,5 @@ More info about it can be found here:
 
 ## Acknowledgements
 
-* Based on: https://github.com/breadbored/Pokemon-Distribution-ROM
+* Based on: https://github.com/breadbored/Pokemon-Distribution-ROM [(Original license)](https://github.com/breadbored/Pokemon-Distribution-ROM/blob/main/LICENSE.md).
 * Used for cross-referencing: https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Pokemon-Trading
