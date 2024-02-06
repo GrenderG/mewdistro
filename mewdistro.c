@@ -303,9 +303,6 @@ void fill_pokemon_team(void)
         pSelectedPokemon->pokemon[i] = MEW;
     }
     
-    // Read from RAM to generate the seed (from 0xC000 to 0xDFFF)
-    initrand(get_ram_seed());
-    
     for (size_t i = 0; i < 6; i++) {
         struct PartyMember *pPartyMember = &traderPacket.pokemon[i];
         // Mimicking this Mew:
@@ -526,6 +523,9 @@ void main(void)
         add_SIO(nowait_int_handler);    // disable waiting VRAM state before return
     }
     set_interrupts(SIO_IFLAG);          // disable other interrupts. note: this disables sprite movement
+
+    // Read from RAM to generate the seed (from 0xC000 to 0xDFFF) for later pseudo-random TID generation.
+    initrand(get_ram_seed());
 
     puts("\n  MEW DISTRIBUTION");
     puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n");
