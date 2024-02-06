@@ -120,7 +120,7 @@ typedef struct TraderPacket {
 } TraderPacket;
 
 void print_log(const char *__s) {
-    size_t max_length = 17; // 19 - ": " length
+    size_t max_length = 17; // 19 - ": " length.
     char __trimmed[18]; // max_length characters + 1 for null terminator.
     size_t len = strlen(__s);
     size_t i;
@@ -312,6 +312,8 @@ void fill_pokemon_team(void)
         // - https://github.com/projectpokemon/EventsGallery/tree/master/Released/Gen%201/Classic/International/2000%20Spanish%20Pok%C3%A9mon%20Championship
         // - https://projectpokemon.org/home/forums/topic/37431-gen-i-v-event-contributions-thread/?do=findComment&comment=254958
         // - https://www.math.miami.edu/~jam/azure/forum/tuff/ultimatebb.php?ubb=get_topic;f=6;t=000256
+        // - https://projectpokemon.org/home/forums/topic/56562-uk-mew-from-julyaugust-2000/?do=findComment&comment=254955
+        // - https://projectpokemon.org/home/forums/topic/37431-gen-i-v-event-contributions-thread/?do=findComment&comment=255300
         //
         // D-J one is not clear that it was legit, only EUROPE. Notes from Suloku about D-J one:
         //
@@ -548,7 +550,7 @@ void main(void)
         // time to think.
         for (int i = 0; i < 500; i++) {
             __asm
-            NOP
+                NOP
             __endasm;
         }
 
