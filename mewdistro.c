@@ -119,30 +119,6 @@ typedef struct TraderPacket {
     unsigned char pokemon_nicknames[6][11];
 } TraderPacket;
 
-void print_log(const char *__s) {
-    size_t max_length = 17; // 19 - ": " length.
-    char __trimmed[18]; // max_length characters + 1 for null terminator.
-    size_t len = strlen(__s);
-    size_t i;
-
-    // Copy characters up to max_length or until the end of the string.
-    for (i = 0; i < max_length && i < len; ++i) {
-        __trimmed[i] = __s[i];
-    }
-
-    // Fill the remaining space with empty spaces.
-    for (; i < max_length; ++i) {
-        __trimmed[i] = ' ';
-    }
-
-    // Null-terminate the string.
-    __trimmed[max_length] = '\0';
-
-    // Reset cursor position.
-    gotoxy(1, 16);
-    printf(": %s", __trimmed);
-}
-
 void party_member_to_bytes(struct PartyMember *pPartyMember, uint8_t *out) {
     uint8_t res[44] = {
         pPartyMember->pokemon,
@@ -386,22 +362,24 @@ void fill_pokemon_team(void)
 }
 
 uint8_t handle_byte(uint8_t in, size_t *counter) {
-    uint8_t out[1];
-
+    static uint8_t out;
     switch (connection_state)
     {
         case NOT_CONNECTED:
             switch (in)
             {
                 case PKMN_MASTER:
-                    out[0] = PKMN_SLAVE;
+                    out = PKMN_SLAVE;
+                    break;
+                case PKMN_SLAVE:
+                    out = PKMN_MASTER;
                     break;
                 case PKMN_BLANK:
-                    out[0] = PKMN_BLANK;
+                    out = PKMN_BLANK;
                     break;
                 case PKMN_CONNECTED:
                     connection_state = CONNECTED;
-                    out[0] = PKMN_CONNECTED;
+                    out = PKMN_CONNECTED;
                     break;
             }
             break;
@@ -410,11 +388,12 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             switch (in)
             {
                 case PKMN_CONNECTED:
-                    out[0] = PKMN_CONNECTED;
+                    out = PKMN_CONNECTED;
                     break;
                 case PKMN_TRADE_CENTRE:
                     // No byte known, just move on the next case
                     connection_state = TRADE_CENTRE;
+                    out = PKMN_TRADE_CENTRE;
                     break;
                 case PKMN_COLOSSEUM:
                     // No byte known, just move on the next case
@@ -424,46 +403,44 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 case PKMN_BREAK_LINK:
                 case PKMN_MASTER:
                     connection_state = NOT_CONNECTED;
-                    out[0] = PKMN_BREAK_LINK;
+                    out = PKMN_BREAK_LINK;
                     break;
 
                 default:
-                    out[0] = in;
+                    out = in;
                     break;
             }
             break;
 
         case TRADE_CENTRE:
             if(trade_state == INIT && in == 0x00) {
-                print_log("Waiting...");
                 // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
                 // can be moved somewhere else to only be called once).
                 fill_pokemon_team();
 
                 trade_state = READY;
-                out[0] = 0x00;
+                out = 0x00;
             } else if(trade_state == READY && in == 0xFD) {
                 trade_state = DETECTED;
-                out[0] = 0xFD;
+                out = 0xFD;
             } else if(trade_state == DETECTED && in != 0xFD) {
-                out[0] = in;
+                out = in;
                 trade_state = DATA_TX_RANDOM;
             } else if(trade_state == DATA_TX_RANDOM && in == 0xFD) {
-                print_log("Sending data...");
                 trade_state = DATA_TX_WAIT;
-                out[0] = 0xFD;
+                out = 0xFD;
                 (*counter) = 0;
             } else if (trade_state == DATA_TX_WAIT && in == 0xFD) {
-                out[0] = 0x00;
+                out = 0x00;
             } else if(trade_state == DATA_TX_WAIT && in != 0xFD) {
                 (*counter) = 0;
                 // send first byte
-                out[0] = DATA_BLOCK[(*counter)];
+                out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 trade_state = DATA_TX;
                 (*counter)++;
             } else if(trade_state == DATA_TX) {
-                out[0] = DATA_BLOCK[(*counter)];
+                out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 (*counter)++;
                 if((*counter) == 418) {
@@ -471,63 +448,64 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 }
             } else if(trade_state == DATA_TX_PATCH && in == 0xFD) {
                 (*counter) = 0;
-                out[0] = 0xFD;
+                out = 0xFD;
             } else if(trade_state == DATA_TX_PATCH && in != 0xFD) {
-                out[0] = in;
+                out = in;
                 (*counter)++;
                 if((*counter) == 197) {
                     trade_state = TRADE_WAIT;
                 }
             } else if(trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
                 if (in == 0x6f) {
-                    print_log("Waiting...");
                     trade_state = READY;
-                    out[0] = 0x6f;
+                    out = 0x6f;
                 } else {
-                    print_log("Selecting...");
-                    out[0] = 0x60;
+                    out = 0x60;
                     trade_pokemon = in - 0x60;
                 }
             } else if(trade_state == TRADE_WAIT && in == 0x00) {
-                out[0] = 0;
+                out = 0;
                 trade_state = TRADE_DONE;
             } else if(trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
-                out[0] = in;
+                out = in;
                 if (in  == 0x61) {
-                    print_log("Waiting...");
                     trade_pokemon = -1;
                     trade_state = TRADE_WAIT;
                 } else {
                     trade_state = DONE;
                 }
             } else if(trade_state == DONE && in == 0x00) {
-                print_log("Finishing...");
-                out[0] = 0;
+                out = 0;
                 trade_state = INIT;
             } else {
-                out[0] = in;
+                out = in;
             }
             break;
 
         default:
-            out[0] = in;
+            out = in;
             break;
     }
 
-    return out[0];
+    return out;
 }
 
-uint8_t linkcable_trade_byte(uint8_t data) {
-    SB_REG = data;
+uint8_t sio_exchange_master(uint8_t b) {
+    SB_REG = b;
     SC_REG = SIOF_XFER_START | SIOF_CLOCK_INT;
+    while (SC_REG & SIOF_XFER_START);
+    return SB_REG;
+}
+
+uint8_t sio_exchange_slave(uint8_t b) {
+    SB_REG = b;
+    SC_REG = SIOF_XFER_START | SIOF_CLOCK_EXT;
     while (SC_REG & SIOF_XFER_START);
     return SB_REG;
 }
 
 void main(void)
 {
-    disable_interrupts();
-
     // Read from RAM to generate the seed (from 0xC000 to 0xDFFF) for later pseudo-random TID generation.
     initrand(get_ram_seed());
 
@@ -535,28 +513,18 @@ void main(void)
     puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
 
-    print_log("Ready");
-
     // Load Mew tiles starting at position 128.
     set_bkg_data(128, 20, mew_tiles);
     // Draw Mew figure in the middle of the screen (more or less).
     set_bkg_tiles(7, 6, 5, 5, mew_map);
 
+    disable_interrupts();
+
     size_t trade_counter = 0;
-    uint8_t _in, _out = 0x00;
+
+    SC_REG = SIOF_CLOCK_INT;
+    uint8_t in = 0xff;
     while(TRUE) {
-        _in = linkcable_trade_byte(_out);
-
-        // We do this because the serial interface halts operations on
-        // the other Game Boy and freezes the game, so we need to give it
-        // time to think.
-        __asm
-            .rept 16
-                push hl
-                pop  hl
-            .endm
-        __endasm;
-
-        _out = handle_byte(_in, &trade_counter);
+        in = sio_exchange_slave(handle_byte(in, &trade_counter));
     }
 }
