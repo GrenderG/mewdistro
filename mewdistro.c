@@ -347,7 +347,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                     out = PKMN_TIME_CAPSULE_SELECT;
                     break;
                 case PKMN_CONNECTED:
-                    out = PKMN_TRADE_CENTRE;
+                    out = PKMN_CONNECTED;
                     break;
                 case PKMN_TRADE_CENTRE:
                     connection_state = TRADE_CENTRE;
