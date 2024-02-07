@@ -363,6 +363,7 @@ void fill_pokemon_team(void)
 
 uint8_t handle_byte(uint8_t in, size_t *counter) {
     static uint8_t out;
+
     switch (connection_state)
     {
         case NOT_CONNECTED:
@@ -391,19 +392,24 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                     out = PKMN_CONNECTED;
                     break;
                 case PKMN_TRADE_CENTRE:
-                    // No byte known, just move on the next case
                     connection_state = TRADE_CENTRE;
                     out = PKMN_TRADE_CENTRE;
                     break;
                 case PKMN_COLOSSEUM:
-                    // No byte known, just move on the next case
                     // This case is not built out and I have no intention to do it
                     connection_state = COLOSSEUM;
                     break;
                 case PKMN_BREAK_LINK:
-                case PKMN_MASTER:
                     connection_state = NOT_CONNECTED;
                     out = PKMN_BREAK_LINK;
+                    break;
+                case PKMN_MASTER:
+                    // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
+                    // start again.
+                    connection_state = NOT_CONNECTED;
+                    trade_state = INIT;
+                    SC_REG = SIOF_CLOCK_INT;
+                    out = PKMN_SLAVE;
                     break;
 
                 default:
@@ -413,49 +419,61 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             break;
 
         case TRADE_CENTRE:
-            if(trade_state == INIT && in == 0x00) {
+            if (trade_state != DATA_TX && in == PKMN_MASTER) {
+                // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
+                // start again.
+                // TODO: If the connection is reset in the middle of DATA_TX it will get stuck so you need to reboot
+                //  the distribution console.
+                connection_state = NOT_CONNECTED;
+                trade_state = INIT;
+                SC_REG = SIOF_CLOCK_INT;
+                out = PKMN_SLAVE;
+                break;
+            }
+
+            if (trade_state == INIT && in == 0x00) {
                 // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
                 // can be moved somewhere else to only be called once).
                 fill_pokemon_team();
 
                 trade_state = READY;
                 out = 0x00;
-            } else if(trade_state == READY && in == 0xFD) {
+            } else if (trade_state == READY && in == 0xFD) {
                 trade_state = DETECTED;
                 out = 0xFD;
-            } else if(trade_state == DETECTED && in != 0xFD) {
+            } else if (trade_state == DETECTED && in != 0xFD) {
                 out = in;
                 trade_state = DATA_TX_RANDOM;
-            } else if(trade_state == DATA_TX_RANDOM && in == 0xFD) {
+            } else if (trade_state == DATA_TX_RANDOM && in == 0xFD) {
                 trade_state = DATA_TX_WAIT;
                 out = 0xFD;
                 (*counter) = 0;
             } else if (trade_state == DATA_TX_WAIT && in == 0xFD) {
                 out = 0x00;
-            } else if(trade_state == DATA_TX_WAIT && in != 0xFD) {
+            } else if (trade_state == DATA_TX_WAIT && in != 0xFD) {
                 (*counter) = 0;
                 // send first byte
                 out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 trade_state = DATA_TX;
                 (*counter)++;
-            } else if(trade_state == DATA_TX) {
+            } else if (trade_state == DATA_TX) {
                 out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 (*counter)++;
-                if((*counter) == 418) {
+                if ((*counter) == 418) {
                     trade_state = DATA_TX_PATCH;
                 }
-            } else if(trade_state == DATA_TX_PATCH && in == 0xFD) {
+            } else if (trade_state == DATA_TX_PATCH && in == 0xFD) {
                 (*counter) = 0;
                 out = 0xFD;
-            } else if(trade_state == DATA_TX_PATCH && in != 0xFD) {
+            } else if (trade_state == DATA_TX_PATCH && in != 0xFD) {
                 out = in;
                 (*counter)++;
-                if((*counter) == 197) {
+                if ((*counter) == 197) {
                     trade_state = TRADE_WAIT;
                 }
-            } else if(trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
+            } else if (trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
                 if (in == 0x6f) {
                     trade_state = READY;
                     out = 0x6f;
@@ -463,10 +481,10 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                     out = 0x60;
                     trade_pokemon = in - 0x60;
                 }
-            } else if(trade_state == TRADE_WAIT && in == 0x00) {
+            } else if (trade_state == TRADE_WAIT && in == 0x00) {
                 out = 0;
                 trade_state = TRADE_DONE;
-            } else if(trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
+            } else if (trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
                 out = in;
                 if (in  == 0x61) {
                     trade_pokemon = -1;
@@ -474,7 +492,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 } else {
                     trade_state = DONE;
                 }
-            } else if(trade_state == DONE && in == 0x00) {
+            } else if (trade_state == DONE && in == 0x00) {
                 out = 0;
                 trade_state = INIT;
             } else {
