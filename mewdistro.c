@@ -363,7 +363,6 @@ void fill_pokemon_team(void)
 
 uint8_t handle_byte(uint8_t in, size_t *counter) {
     static uint8_t out;
-
     switch (connection_state)
     {
         case NOT_CONNECTED:
@@ -378,6 +377,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 case PKMN_BLANK:
                     out = PKMN_BLANK;
                     break;
+                case PKMN_CONNECTED_TIME_CAPSULE:
                 case PKMN_CONNECTED:
                     connection_state = CONNECTED;
                     out = PKMN_CONNECTED;
@@ -388,8 +388,11 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
         case CONNECTED:
             switch (in)
             {
+                case PKMN_CONNECTED_TIME_CAPSULE:
+                    out = PKMN_TIME_CAPSULE_SELECT;
+                    break;
                 case PKMN_CONNECTED:
-                    out = PKMN_CONNECTED;
+                    out = PKMN_TRADE_CENTRE;
                     break;
                 case PKMN_TRADE_CENTRE:
                     connection_state = TRADE_CENTRE;

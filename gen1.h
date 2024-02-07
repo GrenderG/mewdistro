@@ -16,6 +16,7 @@
 #define PKMN_MASTER						0x01
 #define PKMN_SLAVE						0x02
 #define PKMN_CONNECTED					0x60
+#define PKMN_CONNECTED_TIME_CAPSULE		0x61
 // #define PKMN_CONNECTED					0x03
 #define PKMN_WAIT						0x7F
 
@@ -24,6 +25,7 @@
 #define PKMN_TRADE_CENTRE				ITEM_1_SELECTED
 #define PKMN_COLOSSEUM					ITEM_2_SELECTED
 #define PKMN_BREAK_LINK					ITEM_3_SELECTED
+#define PKMN_TIME_CAPSULE_SELECT        0xD1
 
 #define TRADE_CENTRE_WAIT				0xFD
 
