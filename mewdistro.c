@@ -510,13 +510,13 @@ void main(void)
     initrand(get_ram_seed());
 
     puts("\n  MEW DISTRIBUTION");
-    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n");
+    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
 
     // Load Mew tiles starting at position 128.
     set_bkg_data(128, 20, mew_tiles);
     // Draw Mew figure in the middle of the screen (more or less).
-    set_bkg_tiles(7, 6, 5, 5, mew_map);
+    set_bkg_tiles(7, 7, 5, 5, mew_map);
 
     disable_interrupts();
 
