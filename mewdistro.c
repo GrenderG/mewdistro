@@ -434,6 +434,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             if (trade_state == INIT && in == 0x00) {
                 // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
                 // can be moved somewhere else to only be called once).
+                // TODO: Improve it so the entire byte response doesn't need to be reinitialized, only regenerate TID.
                 fill_pokemon_team();
 
                 trade_state = READY;
