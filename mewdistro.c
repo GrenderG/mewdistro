@@ -67,7 +67,7 @@ const unsigned char mew_tiles[] =
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-// It has +128 since we are loading Mew sprites starting at position 128 
+// It has +128 since we are loading Mew sprites starting at position 128
 // to prevent collisions with the font sprites.
 const unsigned char mew_map[] =
 {
@@ -96,17 +96,17 @@ unsigned char name[11] = {
 };
 unsigned char nicknames[11] = {
     // Pokemon Nickname
-    pokechar_M, 
-    pokechar_E, 
-    pokechar_W, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
-    pokechar_STOP_BYTE, 
+    pokechar_M,
+    pokechar_E,
+    pokechar_W,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
+    pokechar_STOP_BYTE,
 };
 
 typedef struct TraderPacket {
@@ -118,30 +118,6 @@ typedef struct TraderPacket {
     unsigned char original_trainer_names[6][11];
     unsigned char pokemon_nicknames[6][11];
 } TraderPacket;
-
-void print_log(const char *__s) {
-    size_t max_length = 17; // 19 - ": " length.
-    char __trimmed[18]; // max_length characters + 1 for null terminator.
-    size_t len = strlen(__s);
-    size_t i;
-
-    // Copy characters up to max_length or until the end of the string.
-    for (i = 0; i < max_length && i < len; ++i) {
-        __trimmed[i] = __s[i];
-    }
-
-    // Fill the remaining space with empty spaces.
-    for (; i < max_length; ++i) {
-        __trimmed[i] = ' ';
-    }
-
-    // Null-terminate the string.
-    __trimmed[max_length] = '\0';
-
-    // Reset cursor position.
-    gotoxy(1, 16);
-    printf(": %s", __trimmed);
-}
 
 void party_member_to_bytes(struct PartyMember *pPartyMember, uint8_t *out) {
     uint8_t res[44] = {
@@ -227,14 +203,14 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
     for (size_t i = 0; i < PARTY_SIZE; i++) {
         uint8_t poke[POKE_SIZE];
         party_member_to_bytes(&pTraderPacket->pokemon[i], poke);
-        
+
         // Full Party Data (all stats and such)
         for (size_t j = 0; j < POKE_SIZE; j++) {
             pokemon_bytes[(i * POKE_SIZE) + j] = (uint8_t) poke[j];
         }
     }
     selected_pokemon_to_bytes(&pTraderPacket->selected_pokemon, selected_pokemon_bytes);
-    
+
 
     for (size_t i = 0; i < PARTY_SIZE; i++) {
         for (size_t j = 0; j < NAME_LEN; j++) {
@@ -276,7 +252,7 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
 }
 
 // get a seed to be used for random generation by xoring values from ram which are pseudorandom on startup.
-uint16_t get_ram_seed(void) 
+uint16_t get_ram_seed(void)
 {
     uint16_t* p = (uint16_t*) 0xC000;
     uint16_t sum = 0;
@@ -302,7 +278,7 @@ void fill_pokemon_team(void)
     for (size_t i = 0; i < 6; i++) {
         pSelectedPokemon->pokemon[i] = MEW;
     }
-    
+
     for (size_t i = 0; i < 6; i++) {
         struct PartyMember *pPartyMember = &traderPacket.pokemon[i];
         // Mimicking this Mew:
@@ -381,27 +357,30 @@ void fill_pokemon_team(void)
             traderPacket.pokemon_nicknames[i][j] = nicknames[j];
         }
     }
-    
+
     trader_packet_to_bytes(&traderPacket, DATA_BLOCK);
 }
 
 uint8_t handle_byte(uint8_t in, size_t *counter) {
-    uint8_t out[1];
-    
+    static uint8_t out;
     switch (connection_state)
     {
         case NOT_CONNECTED:
             switch (in)
             {
                 case PKMN_MASTER:
-                    out[0] = PKMN_SLAVE;
+                    out = PKMN_SLAVE;
+                    break;
+                case PKMN_SLAVE:
+                    out = PKMN_MASTER;
                     break;
                 case PKMN_BLANK:
-                    out[0] = PKMN_BLANK;
+                    out = PKMN_BLANK;
                     break;
+                case PKMN_CONNECTED_TIME_CAPSULE:
                 case PKMN_CONNECTED:
                     connection_state = CONNECTED;
-                    out[0] = PKMN_CONNECTED;
+                    out = PKMN_CONNECTED;
                     break;
             }
             break;
@@ -409,164 +388,165 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
         case CONNECTED:
             switch (in)
             {
+                case PKMN_CONNECTED_TIME_CAPSULE:
+                    out = PKMN_TIME_CAPSULE_SELECT;
+                    break;
                 case PKMN_CONNECTED:
-                    out[0] = PKMN_CONNECTED;
+                    out = PKMN_TRADE_CENTRE;
                     break;
                 case PKMN_TRADE_CENTRE:
-                    // No byte known, just move on the next case
                     connection_state = TRADE_CENTRE;
+                    out = PKMN_TRADE_CENTRE;
                     break;
                 case PKMN_COLOSSEUM:
-                    // No byte known, just move on the next case
                     // This case is not built out and I have no intention to do it
                     connection_state = COLOSSEUM;
                     break;
                 case PKMN_BREAK_LINK:
-                case PKMN_MASTER:
                     connection_state = NOT_CONNECTED;
-                    out[0] = PKMN_BREAK_LINK;
+                    out = PKMN_BREAK_LINK;
                     break;
-                
+                case PKMN_MASTER:
+                    // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
+                    // start again.
+                    connection_state = NOT_CONNECTED;
+                    trade_state = INIT;
+                    SC_REG = SIOF_CLOCK_INT;
+                    out = PKMN_SLAVE;
+                    break;
+
                 default:
-                    out[0] = in;
+                    out = in;
                     break;
             }
             break;
 
         case TRADE_CENTRE:
-            if(trade_state == INIT && in == 0x00) {
-                print_log("Waiting...");
+            if (trade_state != DATA_TX && in == PKMN_MASTER) {
+                // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
+                // start again.
+                // TODO: If the connection is reset in the middle of DATA_TX it will get stuck so you need to reboot
+                //  the distribution console.
+                connection_state = NOT_CONNECTED;
+                trade_state = INIT;
+                SC_REG = SIOF_CLOCK_INT;
+                out = PKMN_SLAVE;
+                break;
+            }
+
+            if (trade_state == INIT && in == 0x00) {
                 // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
                 // can be moved somewhere else to only be called once).
+                // TODO: Improve it so the entire byte response doesn't need to be reinitialized, only regenerate TID.
                 fill_pokemon_team();
 
                 trade_state = READY;
-                out[0] = 0x00;
-            } else if(trade_state == READY && in == 0xFD) {
+                out = 0x00;
+            } else if (trade_state == READY && in == 0xFD) {
                 trade_state = DETECTED;
-                out[0] = 0xFD;
-            } else if(trade_state == DETECTED && in != 0xFD) {
-                out[0] = in;
+                out = 0xFD;
+            } else if (trade_state == DETECTED && in != 0xFD) {
+                out = in;
                 trade_state = DATA_TX_RANDOM;
-            } else if(trade_state == DATA_TX_RANDOM && in == 0xFD) {
-                print_log("Sending data...");
+            } else if (trade_state == DATA_TX_RANDOM && in == 0xFD) {
                 trade_state = DATA_TX_WAIT;
-                out[0] = 0xFD;
+                out = 0xFD;
                 (*counter) = 0;
             } else if (trade_state == DATA_TX_WAIT && in == 0xFD) {
-                out[0] = 0x00;
-            } else if(trade_state == DATA_TX_WAIT && in != 0xFD) {
+                out = 0x00;
+            } else if (trade_state == DATA_TX_WAIT && in != 0xFD) {
                 (*counter) = 0;
                 // send first byte
-                out[0] = DATA_BLOCK[(*counter)];
+                out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 trade_state = DATA_TX;
                 (*counter)++;
-            } else if(trade_state == DATA_TX) {
-                out[0] = DATA_BLOCK[(*counter)];
+            } else if (trade_state == DATA_TX) {
+                out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 (*counter)++;
-                if((*counter) == 418) {
+                if ((*counter) == 418) {
                     trade_state = DATA_TX_PATCH;
                 }
-            } else if(trade_state == DATA_TX_PATCH && in == 0xFD) {
+            } else if (trade_state == DATA_TX_PATCH && in == 0xFD) {
                 (*counter) = 0;
-                out[0] = 0xFD;
-            } else if(trade_state == DATA_TX_PATCH && in != 0xFD) {
-                out[0] = in;
+                out = 0xFD;
+            } else if (trade_state == DATA_TX_PATCH && in != 0xFD) {
+                out = in;
                 (*counter)++;
-                if((*counter) == 197) {
+                if ((*counter) == 197) {
                     trade_state = TRADE_WAIT;
                 }
-            } else if(trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
+            } else if (trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
                 if (in == 0x6f) {
-                    print_log("Waiting...");
                     trade_state = READY;
-                    out[0] = 0x6f;
+                    out = 0x6f;
                 } else {
-                    print_log("Selecting...");
-                    out[0] = 0x60;
+                    out = 0x60;
                     trade_pokemon = in - 0x60;
                 }
-            } else if(trade_state == TRADE_WAIT && in == 0x00) {
-                out[0] = 0;
+            } else if (trade_state == TRADE_WAIT && in == 0x00) {
+                out = 0;
                 trade_state = TRADE_DONE;
-            } else if(trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
-                out[0] = in;
+            } else if (trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
+                out = in;
                 if (in  == 0x61) {
-                    print_log("Waiting...");
                     trade_pokemon = -1;
                     trade_state = TRADE_WAIT;
                 } else {
                     trade_state = DONE;
                 }
-            } else if(trade_state == DONE && in == 0x00) {
-                print_log("Finishing...");
-                out[0] = 0;
+            } else if (trade_state == DONE && in == 0x00) {
+                out = 0;
                 trade_state = INIT;
             } else {
-                out[0] = in;
+                out = in;
             }
             break;
-        
+
         default:
-            out[0] = in;
+            out = in;
             break;
     }
 
-    return out[0];
+    return out;
+}
+
+uint8_t sio_exchange_master(uint8_t b) {
+    SB_REG = b;
+    SC_REG = SIOF_XFER_START | SIOF_CLOCK_INT;
+    while (SC_REG & SIOF_XFER_START);
+    return SB_REG;
+}
+
+uint8_t sio_exchange_slave(uint8_t b) {
+    SB_REG = b;
+    SC_REG = SIOF_XFER_START | SIOF_CLOCK_EXT;
+    while (SC_REG & SIOF_XFER_START);
+    return SB_REG;
 }
 
 void main(void)
 {
-    CRITICAL {
-        add_SIO(nowait_int_handler);    // disable waiting VRAM state before return
-    }
-    set_interrupts(SIO_IFLAG);          // disable other interrupts. note: this disables sprite movement
-
     // Read from RAM to generate the seed (from 0xC000 to 0xDFFF) for later pseudo-random TID generation.
     initrand(get_ram_seed());
 
     puts("\n  MEW DISTRIBUTION");
-    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n");
+    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
-
-    print_log("Ready");
 
     // Load Mew tiles starting at position 128.
     set_bkg_data(128, 20, mew_tiles);
     // Draw Mew figure in the middle of the screen (more or less).
-    set_bkg_tiles(7, 6, 5, 5, mew_map);
+    set_bkg_tiles(7, 7, 5, 5, mew_map);
+
+    disable_interrupts();
 
     size_t trade_counter = 0;
-    while(1) {
-        uint8_t in = _io_in;
-        
-        _io_out = handle_byte(in, &trade_counter);
 
-        // No-Op loop to delay the bytes being sent.
-        // We do this because the serial interface halts operations on
-        // the other Gameboy and freezes the game, so we need to give it
-        // time to think.
-        for (int i = 0; i < 500; i++) {
-            __asm
-                NOP
-            __endasm;
-        }
-
-        // See https://www.reddit.com/r/retrogamedev/comments/16f4myt/i_homebrewed_a_pokemon_gen_1_mew_distribution/
-        // and https://github.com/gbdk-2020/gbdk-2020/pull/577
-        __asm
-            LD    A,#0x02         ; .IO_RECEIVING
-            LD    (__io_status),A ; Store status
-            LD    A,#0x01
-            LDH    (0x02),A        ; (.SC) Use external clock
-            LD    A,(__io_out)
-            LDH    (0x01),A        ; (.SB) Send __io_out byte
-            LD    A,#0x81
-            LDH    (0x02),A        ; (.SC) Use external clock
-        __endasm;
-
-        while(_io_status == IO_RECEIVING || _io_status == IO_SENDING);
+    SC_REG = SIOF_CLOCK_INT;
+    uint8_t in = 0xff;
+    while(TRUE) {
+        in = sio_exchange_slave(handle_byte(in, &trade_counter));
     }
 }
