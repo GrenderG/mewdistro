@@ -4,205 +4,210 @@
 #include <gb/gb.h>
 #include <stdint.h>
 
-#define PKMN_BLANK						0x00
+// Protocol opcodes.
 
-#define ITEM_1_HIGHLIGHTED				0xD0
-#define ITEM_2_HIGHLIGHTED				0xD1
-#define ITEM_3_HIGHLIGHTED				0xD2
-#define ITEM_1_SELECTED					0xD4
-#define ITEM_2_SELECTED					0xD5
-#define ITEM_3_SELECTED					0xD6
+#define PKMN_BLANK                      0x00
 
-#define PKMN_MASTER						0x01
-#define PKMN_SLAVE						0x02
-#define PKMN_CONNECTED					0x60
-#define PKMN_CONNECTED_TIME_CAPSULE		0x61
-// #define PKMN_CONNECTED					0x03
-#define PKMN_WAIT						0x7F
+#define ITEM_1_HIGHLIGHTED              0xD0
+#define ITEM_2_HIGHLIGHTED              0xD1
+#define ITEM_3_HIGHLIGHTED              0xD2
+#define ITEM_1_SELECTED                 0xD4
+#define ITEM_2_SELECTED                 0xD5
+#define ITEM_3_SELECTED                 0xD6
 
-#define PKMN_ACTION						0x60
+#define PKMN_MASTER                     0x01
+#define PKMN_SLAVE                      0x02
+#define PKMN_CONNECTED                  0x60
+#define PKMN_CONNECTED_TIME_CAPSULE     0x61
+// #define PKMN_CONNECTED                 0x03
+#define PKMN_WAIT                       0x7F
 
-#define PKMN_TRADE_CENTRE				ITEM_1_SELECTED
-#define PKMN_COLOSSEUM					ITEM_2_SELECTED
-#define PKMN_BREAK_LINK					ITEM_3_SELECTED
+#define PKMN_ACTION                     0x60
+
+#define PKMN_TRADE_CENTRE               ITEM_1_SELECTED
+#define PKMN_COLOSSEUM                  ITEM_2_SELECTED
+#define PKMN_BREAK_LINK                 ITEM_3_SELECTED
 #define PKMN_TIME_CAPSULE_SELECT        0xD1
 
-#define TRADE_CENTRE_WAIT				0xFD
+#define TRADE_CENTRE_WAIT               0xFD
 
-#define pokechar_STOP_BYTE  0x50 
+
+// Text definitions.
+
+#define pokechar_STOP_BYTE 0x50
 // Ends a string
-#define pokechar_NULL_BYTE  0x00 
+#define pokechar_NULL_BYTE 0x00
 // Nothing, comes after the stop byte to fill in the rest
 
 // ENG Characters
-#define pokechar_SPACE  0x7F
-#define pokechar_A  0x80
-#define pokechar_B  0x81
-#define pokechar_C  0x82
-#define pokechar_D  0x83
-#define pokechar_E  0x84
-#define pokechar_F  0x85
-#define pokechar_G  0x86
-#define pokechar_H  0x87
-#define pokechar_I  0x88
-#define pokechar_J  0x89
-#define pokechar_K  0x8A
-#define pokechar_L  0x8B
-#define pokechar_M  0x8C
-#define pokechar_N  0x8D
-#define pokechar_O  0x8E
-#define pokechar_P  0x8F
-#define pokechar_Q  0x90
-#define pokechar_R  0x91
-#define pokechar_S  0x92
-#define pokechar_T  0x93
-#define pokechar_U  0x94
-#define pokechar_V  0x95
-#define pokechar_W  0x96
-#define pokechar_X  0x97
-#define pokechar_Y  0x98
-#define pokechar_Z  0x99
-#define pokechar_OPEN_PARENTHESIS  0x9A
-#define pokechar_CLOSE_PARENTHESIS  0x9B
-#define pokechar_COLON  0x9C
-#define pokechar_SEMICOLON  0x9D
-#define pokechar_OPEN_BRACKET  0x9E
-#define pokechar_CLOSE_BRACKET  0x9F
-#define pokechar_a  0xA0
-#define pokechar_b  0xA1
-#define pokechar_c  0xA2
-#define pokechar_d  0xA3
-#define pokechar_e  0xA4
-#define pokechar_f  0xA5
-#define pokechar_g  0xA6
-#define pokechar_h  0xA7
-#define pokechar_i  0xA8
-#define pokechar_j  0xA9
-#define pokechar_k  0xAa
-#define pokechar_l  0xAb
-#define pokechar_m  0xAc
-#define pokechar_n  0xAd
-#define pokechar_o  0xAe
-#define pokechar_p  0xAf
-#define pokechar_q  0xB0
-#define pokechar_r  0xB1
-#define pokechar_s  0xB2
-#define pokechar_t  0xB3
-#define pokechar_u  0xB4
-#define pokechar_v  0xB5
-#define pokechar_w  0xB6
-#define pokechar_x  0xB7
-#define pokechar_y  0xB8
-#define pokechar_z  0xB9
-#define pokechar_e_accent  0xBA
-#define pokechar_apostrophe_d  0xBB
-#define pokechar_apostrophe_l  0xBC
-#define pokechar_apostrophe_s  0xBD
-#define pokechar_apostrophe_t  0xBE
-#define pokechar_apostrophe_v  0xBF
-#define pokechar_apostrophe  0xE0
-#define pokechar_PK_character  0xE1
-#define pokechar_MN_character  0xE2
-#define pokechar_hyphen  0xE3
-#define pokechar_apostrophe_r  0xE4
-#define pokechar_apostrophe_m  0xE5
-#define pokechar_question_mark  0xE6
-#define pokechar_exclamation_mark  0xE7
+#define pokechar_SPACE 0x7F
+#define pokechar_A 0x80
+#define pokechar_B 0x81
+#define pokechar_C 0x82
+#define pokechar_D 0x83
+#define pokechar_E 0x84
+#define pokechar_F 0x85
+#define pokechar_G 0x86
+#define pokechar_H 0x87
+#define pokechar_I 0x88
+#define pokechar_J 0x89
+#define pokechar_K 0x8A
+#define pokechar_L 0x8B
+#define pokechar_M 0x8C
+#define pokechar_N 0x8D
+#define pokechar_O 0x8E
+#define pokechar_P 0x8F
+#define pokechar_Q 0x90
+#define pokechar_R 0x91
+#define pokechar_S 0x92
+#define pokechar_T 0x93
+#define pokechar_U 0x94
+#define pokechar_V 0x95
+#define pokechar_W 0x96
+#define pokechar_X 0x97
+#define pokechar_Y 0x98
+#define pokechar_Z 0x99
+#define pokechar_OPEN_PARENTHESIS 0x9A
+#define pokechar_CLOSE_PARENTHESIS 0x9B
+#define pokechar_COLON 0x9C
+#define pokechar_SEMICOLON 0x9D
+#define pokechar_OPEN_BRACKET 0x9E
+#define pokechar_CLOSE_BRACKET 0x9F
+#define pokechar_a 0xA0
+#define pokechar_b 0xA1
+#define pokechar_c 0xA2
+#define pokechar_d 0xA3
+#define pokechar_e 0xA4
+#define pokechar_f 0xA5
+#define pokechar_g 0xA6
+#define pokechar_h 0xA7
+#define pokechar_i 0xA8
+#define pokechar_j 0xA9
+#define pokechar_k 0xAa
+#define pokechar_l 0xAb
+#define pokechar_m 0xAc
+#define pokechar_n 0xAd
+#define pokechar_o 0xAe
+#define pokechar_p 0xAf
+#define pokechar_q 0xB0
+#define pokechar_r 0xB1
+#define pokechar_s 0xB2
+#define pokechar_t 0xB3
+#define pokechar_u 0xB4
+#define pokechar_v 0xB5
+#define pokechar_w 0xB6
+#define pokechar_x 0xB7
+#define pokechar_y 0xB8
+#define pokechar_z 0xB9
+#define pokechar_e_accent 0xBA
+#define pokechar_apostrophe_d 0xBB
+#define pokechar_apostrophe_l 0xBC
+#define pokechar_apostrophe_s 0xBD
+#define pokechar_apostrophe_t 0xBE
+#define pokechar_apostrophe_v 0xBF
+#define pokechar_apostrophe 0xE0
+#define pokechar_PK_character 0xE1
+#define pokechar_MN_character 0xE2
+#define pokechar_hyphen 0xE3
+#define pokechar_apostrophe_r 0xE4
+#define pokechar_apostrophe_m 0xE5
+#define pokechar_question_mark 0xE6
+#define pokechar_exclamation_mark 0xE7
 
 // NOTE: `period` is never used in names. Instead use `decimal_point`
 // . (used as punctuation)
-#define pokechar_period  0xE8
+#define pokechar_period 0xE8
 
-#define pokechar_hollow_play  0xEC 
+#define pokechar_hollow_play 0xEC
 // ▷
-#define pokechar_solid_play  0xED 
+#define pokechar_solid_play 0xED
 // ▶
-#define pokechar_solid_down  0xEE 
+#define pokechar_solid_down 0xEE
 // ▼
-#define pokechar_male_symbol  0xEF 
+#define pokechar_male_symbol 0xEF
 // ♂
-#define pokechar_pokemon_dollar  0xF0
-#define pokechar_multiply  0xF1 
+#define pokechar_pokemon_dollar 0xF0
+#define pokechar_multiply 0xF1
 // ×
-#define pokechar_decimal_point  0xF2 
+#define pokechar_decimal_point 0xF2
 // . (used as a decimal point)
-#define pokechar_slash_forward  0xF3 
+#define pokechar_slash_forward 0xF3
 // /
-#define pokechar_comma  0xF4 
+#define pokechar_comma 0xF4
 // ,
-#define pokechar_female_symbol  0xF5 
+#define pokechar_female_symbol 0xF5
 // ♀
-#define pokechar_zero  0xF6
-#define pokechar_one  0xF7
-#define pokechar_two  0xF8
-#define pokechar_three  0xF9
-#define pokechar_four  0xFA
-#define pokechar_five  0xFB
-#define pokechar_six  0xFC
-#define pokechar_seven  0xFD
-#define pokechar_eight  0xFE
-#define pokechar_nine  0xFF
+#define pokechar_zero 0xF6
+#define pokechar_one 0xF7
+#define pokechar_two 0xF8
+#define pokechar_three 0xF9
+#define pokechar_four 0xFA
+#define pokechar_five 0xFB
+#define pokechar_six 0xFC
+#define pokechar_seven 0xFD
+#define pokechar_eight 0xFE
+#define pokechar_nine 0xFF
 // Characters that weren't removed from JPN when translating to ENG
 // Some seem bolded, some are symbols, others are katakana or hiragana letters
-#define pokechar_JPN_A  0x60
-#define pokechar_JPN_B  0x61
-#define pokechar_JPN_C  0x62
-#define pokechar_JPN_D  0x63
-#define pokechar_JPN_E  0x64
-#define pokechar_JPN_F  0x65
-#define pokechar_JPN_G  0x66
-#define pokechar_JPN_H  0x67
-#define pokechar_JPN_I  0x68
-#define pokechar_JPN_V  0x69
-#define pokechar_JPN_S  0x6A
-#define pokechar_JPN_L  0x6B
-#define pokechar_JPN_M  0x6C
-#define pokechar_JPN_colon  0x6D
-#define pokechar_hiragana_i  0x6E 
+#define pokechar_JPN_A 0x60
+#define pokechar_JPN_B 0x61
+#define pokechar_JPN_C 0x62
+#define pokechar_JPN_D 0x63
+#define pokechar_JPN_E 0x64
+#define pokechar_JPN_F 0x65
+#define pokechar_JPN_G 0x66
+#define pokechar_JPN_H 0x67
+#define pokechar_JPN_I 0x68
+#define pokechar_JPN_V 0x69
+#define pokechar_JPN_S 0x6A
+#define pokechar_JPN_L 0x6B
+#define pokechar_JPN_M 0x6C
+#define pokechar_JPN_colon 0x6D
+#define pokechar_hiragana_i 0x6E
 // ぃ
-#define pokechar_hiragana_u  0x6F 
+#define pokechar_hiragana_u 0x6F
 // ぅ
-#define pokechar_open_single_quote  0x70 
+#define pokechar_open_single_quote 0x70
 // ‘
-#define pokechar_close_single_quote  0x71 
+#define pokechar_close_single_quote 0x71
 // ’
-#define pokechar_open_double_quote  0x72 
+#define pokechar_open_double_quote 0x72
 // “
-#define pokechar_close_double_quote  0x73 
+#define pokechar_close_double_quote 0x73
 // ”
-#define pokechar_dot  0x74 
+#define pokechar_dot 0x74
 // ・
-#define pokechar_ellipsis  0x75 
+#define pokechar_ellipsis 0x75
 // ⋯
-#define pokechar_hiragana_a  0x76 
+#define pokechar_hiragana_a 0x76
 // ぁ
-#define pokechar_hiragana_e  0x77 
+#define pokechar_hiragana_e 0x77
 // ぇ
-#define pokechar_hiragana_o  0x78 
+#define pokechar_hiragana_o 0x78
 // ぉ
-#define pokechar_katakana_a  0xE9 
+#define pokechar_katakana_a 0xE9
 // ァ
-#define pokechar_katakana_u  0xEA 
+#define pokechar_katakana_u 0xEA
 // ゥ
-#define pokechar_katakana_e  0xEB 
+#define pokechar_katakana_e 0xEB
 // ェ
 
 enum connection_state_t {
-	TRADE_CENTRE,
-	NOT_CONNECTED,
-	CONNECTED,
-	COLOSSEUM,
+    TRADE_CENTRE,
+    NOT_CONNECTED,
+    CONNECTED,
+    COLOSSEUM,
 };
 
 enum trade_state_t {
-	INIT = 0x00,
-	READY = 0x01,
-	DETECTED = 0x02,
-	DATA_TX = 0x03,
-	DATA_TX_WAIT = 0x04,
-	DATA_TX_WAIT_HOLD = 0x05,
-	DATA_TX_START = 0x06,
-	DATA_TX_RANDOM = 0x07,
+    INIT = 0x00,
+    READY = 0x01,
+    DETECTED = 0x02,
+    DATA_TX = 0x03,
+    DATA_TX_WAIT = 0x04,
+    DATA_TX_WAIT_HOLD = 0x05,
+    DATA_TX_START = 0x06,
+    DATA_TX_RANDOM = 0x07,
     DATA_TX_PATCH = 0x08,
     TRADE_WAIT = 0x09,
     TRADE_DONE = 0x0A,
@@ -565,7 +570,6 @@ typedef struct SelectedPokemon {
     enum gen_one_dex_t pokemon[6];
 } SelectedPokemon;
 
-
 // Luckily it follows the save file structure closely enough
 // https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_data_structure_(Generation_I)
 typedef struct PartyMember {
@@ -575,33 +579,42 @@ typedef struct PartyMember {
     uint8_t level;
     enum status_condition_t status;
     enum poke_type_t type1;
-    enum poke_type_t type2; // If only one type, copy the first
-    uint8_t catch_rate_or_held_item; // R/G/B/Y (catch rate), G/S/C (held item), and Stadium (held item) use this byte differently
+    enum poke_type_t type2;           // If only one type, copy the first
+    uint8_t catch_rate_or_held_item;  // R/G/B/Y (catch rate), G/S/C (held
+    // item), and Stadium (held item) use this
+    // byte differently
     enum poke_move_t move1;
     enum poke_move_t move2;
     enum poke_move_t move3;
     enum poke_move_t move4;
-    uint16_t original_trainer_id; // In decimal, these are the funny numbers
+    uint16_t original_trainer_id;  // In decimal, these are the funny numbers
 
-    // -   Experience is complicated. You must look up the Pokemon you are trying to trade
-    //      in the following table and apply the experience points that match the level.
-    //      EXP LVL Table for gen 1: https://pwo-wiki.info/index.php/Generation_I_Experience_Charts
-    //      That source was the best I could find for Gen 1. If you find another, submit a PR or open an issue and I'll fix it
-    // -   Experience is a 24bit number, we will be dropping the MSB to acheive that
+    // -   Experience is complicated. You must look up the Pokemon you are
+    // trying to trade
+    //      in the following table and apply the experience points that match
+    //      the level. EXP LVL Table for gen 1:
+    //      https://pwo-wiki.info/index.php/Generation_I_Experience_Charts That
+    //      source was the best I could find for Gen 1. If you find another,
+    //      submit a PR or open an issue and I'll fix it
+    // -   Experience is a 24bit number, we will be dropping the MSB to acheive
+    // that
     uint32_t experience;
 
     // Effort Values
-    // These are very specific to the Pokemon and who they battled in the past or what vitamins they were fed
-    // Luckily, these get recalculated when you level them up, or when you put them in a box and then put them back in your party
-    // For this example, I will take the max value and scale it to the level (65535 * 0.40) = 26214
+    // These are very specific to the Pokemon and who they battled in the past
+    // or what vitamins they were fed Luckily, these get recalculated when you
+    // level them up, or when you put them in a box and then put them back in
+    // your party For this example, I will take the max value and scale it to
+    // the level (65535 * 0.40) = 26214
     uint16_t HP_ev;
     uint16_t attack_ev;
     uint16_t defense_ev;
     uint16_t speed_ev;
     uint16_t special_ev;
 
-    // IVs are a 4 bit number, so the max value is 15 (0-15 = 0b0000-0b1111 = 0x0-0xF)
-    // These have been broken out for legibility, but will be condensed to only 2 bytes
+    // IVs are a 4 bit number, so the max value is 15 (0-15 = 0b0000-0b1111 =
+    // 0x0-0xF) These have been broken out for legibility, but will be condensed
+    // to only 2 bytes
     uint8_t attack_iv;
     uint8_t defense_iv;
     uint8_t speed_iv;
