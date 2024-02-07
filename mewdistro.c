@@ -12,9 +12,9 @@
 #define POKE_SIZE 44
 #define NAME_LEN 11
 #define SELP_LEN 8
-#define POKE_LEN POKE_SIZE *PARTY_SIZE
-#define ORIG_LEN NAME_LEN *PARTY_SIZE
-#define NICK_LEN NAME_LEN *PARTY_SIZE
+#define POKE_LEN POKE_SIZE * PARTY_SIZE
+#define ORIG_LEN NAME_LEN * PARTY_SIZE
+#define NICK_LEN NAME_LEN * PARTY_SIZE
 #define FULL_LEN NAME_LEN + SELP_LEN + (POKE_SIZE * PARTY_SIZE) + (NAME_LEN * PARTY_SIZE) + (NAME_LEN * PARTY_SIZE)
 
 #define SER_REG_DIR (*(uint8_t *)0xFF01)
@@ -225,7 +225,7 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
 
 // get a seed to be used for random generation by xoring values from ram which are pseudorandom on startup.
 uint16_t get_ram_seed(void) {
-    uint16_t *p = (uint16_t *)0xC000;
+    uint16_t *p = (uint16_t*)0xC000;
     uint16_t sum = 0;
     for (uint16_t i = 0; i < 0x1FFF; i++) {
         sum ^= p[i];
