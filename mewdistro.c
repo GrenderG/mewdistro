@@ -510,7 +510,7 @@ void main(void)
     initrand(get_ram_seed());
 
     puts("\n  MEW DISTRIBUTION");
-    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n");
+    puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n\n");
     puts("       by @GrenderG");
 
     // Load Mew tiles starting at position 128.
