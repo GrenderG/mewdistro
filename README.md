@@ -1,6 +1,6 @@
 # Mewdistro
 
-Mewdistro is a small custom ROM designed for transferring Pokémon to Gen 1 Pokémon games (it should theoretically work with Gen 2 TIME MACHINE, but I'm experiencing issues with it). At this moment, it's capable of transferring a legitimate Mew that was distributed during the Spanish Pokémon Championship in the year 2000, with the OT/ EUROPE.
+Mewdistro is a small custom ROM designed for transferring Pokémon to Gen 1 and 2 (through time capsule) Pokémon games. At this moment, it's capable of transferring a legitimate Mew that was distributed during the Spanish Pokémon Championship in the year 2000, with the OT/ EUROPE.
 
 More information about it can be found here:
 - [Preserved file by Project Pokémon](https://github.com/projectpokemon/EventsGallery/tree/master/Released/Gen%201/Classic/International/2000%20Spanish%20Pok%C3%A9mon%20Championship)
