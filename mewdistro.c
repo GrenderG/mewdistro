@@ -1,6 +1,7 @@
 #include <gb/gb.h>
 #include <gb/hardware.h>
 #include <gbdk/console.h>
+#include <gbdk/font.h>
 #include <rand.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -320,6 +321,17 @@ void fill_pokemon_team(void) {
 }
 
 uint8_t handle_byte(uint8_t in, size_t *counter) {
+    // Simple protocol explanation.
+    // Steps:
+    //    First synchronization
+    //    0xFD until the other gameboy is ready and answers 0xFD
+    //    Random seed data (Size: 10)
+    //    0xFD until the other gameboy is ready and answers 0xFD
+    //    Party data (Size: 418 for Gen 1, 444 for Gen 2)
+    //    0xFD until the other gameboy is ready and answers 0xFD
+    //    Patch set (Size: 197)
+    //    End
+    // Note: Gen 2 also has mail data at the end (Size: 381).
     static uint8_t out;
     switch (connection_state) {
         case NOT_CONNECTED:
@@ -378,11 +390,11 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             break;
 
         case TRADE_CENTRE:
-            if (trade_state != DATA_TX && in == PKMN_MASTER) {
+            if (in == PKMN_MASTER && trade_state != DATA_TX_RANDOM && trade_state != DATA_TX) {
                 // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
                 // start again.
-                // TODO: If the connection is reset in the middle of DATA_TX it will get stuck so you need to reboot
-                //  the distribution console.
+                // TODO: If the connection is reset in the middle of DATA_TX_RANDOM or DATA_TX it will get stuck so you
+                //  need to reboot the distribution console.
                 connection_state = NOT_CONNECTED;
                 trade_state = INIT;
                 SC_REG = SIOF_CLOCK_INT;
@@ -486,9 +498,12 @@ void main(void) {
     // Read from RAM to generate the seed (from 0xC000 to 0xDFFF) for later pseudo-random TID generation.
     initrand(get_ram_seed());
 
+    font_init();
+    font_set(font_load(font_spect));
+
     puts("\n  MEW DISTRIBUTION");
     puts("     OT/ EUROPE\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    puts("       by @GrenderG");
+    puts("    2024 Grender");
 
     // Load Mew tiles starting at position 128.
     set_bkg_data(128, 20, mew_tiles);
