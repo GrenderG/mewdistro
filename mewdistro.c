@@ -446,9 +446,14 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 // positions in the patch set data back to 0xFE.
                 // First 6 bytes are always 0x00, then the 2 list follow (if lists are empty that means 2 0xff at
                 // positions 7 and 8.
-                // A patch set list can only go up to 0xFC position, so that's why 2 lists are needed.
+                // A patch set list can only go up to 0xFC position, so that's why 2 lists are needed, you need to
+                // subtract 252 (0xFC) from the second one.
                 // Both lists can cover from their starting position to that + 0xFC - 1 included, and their size isn't
                 // fixed.
+                // They start at index 19 (1-based) after "names_size + MON_INDEX_SIZE + 1". Example if we have a 0xFE
+                // byte at position 46 and another one at position 284:
+                // 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x1C 0xFF 0x0E 0xFF 0x00 ...
+                // 0x1C being 46-19+1 and 0x0E being 284-252-19+1. We add +1 since the index is 1-based.
                 if ((*counter) < PATCH_DATA_START_POS || (*counter) > PATCH_DATA_START_POS + 1) {
                     out = 0x00;
                 } else {
