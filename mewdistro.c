@@ -52,9 +52,9 @@ const unsigned char mew_map[] = {
 
 enum connection_state_t connection_state = NOT_CONNECTED;
 enum trade_state_t trade_state = INIT;
-uint8_t INPUT_BLOCK[418];
-uint8_t DATA_BLOCK[418];
-int trade_pokemon = -1;
+uint8_t INPUT_BLOCK[PARTY_DATA_SIZE];
+uint8_t DATA_BLOCK[PARTY_DATA_SIZE];
+uint8_t scheduled_refill = TRUE;
 unsigned char name[11] = {
         pokechar_E,
         pokechar_U,
@@ -403,23 +403,19 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             }
 
             if (trade_state == INIT && in == 0x00) {
-                // Fill team on each init, this way Pokémon ID is regenerated if it's random (otherwise this
-                // can be moved somewhere else to only be called once).
-                // TODO: Improve it so the entire byte response doesn't need to be reinitialized, only regenerate TID.
-                fill_pokemon_team();
-
+                (*counter) = 0;
                 trade_state = READY;
                 out = 0x00;
             } else if (trade_state == READY && in == 0xFD) {
                 trade_state = DETECTED;
                 out = 0xFD;
             } else if (trade_state == DETECTED && in != 0xFD) {
+                // Here random data seed is sent... Just ignore, we don't need it.
                 out = in;
                 trade_state = DATA_TX_RANDOM;
             } else if (trade_state == DATA_TX_RANDOM && in == 0xFD) {
                 trade_state = DATA_TX_WAIT;
                 out = 0xFD;
-                (*counter) = 0;
             } else if (trade_state == DATA_TX_WAIT && in == 0xFD) {
                 out = 0x00;
             } else if (trade_state == DATA_TX_WAIT && in != 0xFD) {
@@ -433,16 +429,34 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                 out = DATA_BLOCK[(*counter)];
                 INPUT_BLOCK[(*counter)] = in;
                 (*counter)++;
-                if ((*counter) == 418) {
+                if ((*counter) == PARTY_DATA_SIZE) {
                     trade_state = DATA_TX_PATCH;
                 }
             } else if (trade_state == DATA_TX_PATCH && in == 0xFD) {
                 (*counter) = 0;
                 out = 0xFD;
             } else if (trade_state == DATA_TX_PATCH && in != 0xFD) {
-                out = in;
+                // TODO: This is a hackfix, proper patch data handling is needed (0xFE bytes need to be replaced with
+                //  0xFF and their positions added to the patch lists). We are just sending emtpy lists for now.
+
+                // Patch data explanation:
+                // 0xFE is a value that cannot be sent, or it will be interpreted as no byte being ready by the
+                // receiving console. So, if one byte should be 0xFE, it's converted to 0xFF, and its position is added
+                // to the patch set lists (they are two, each is FF-terminated). The receiving end converts the
+                // positions in the patch set data back to 0xFE.
+                // First 6 bytes are always 0x00, then the 2 list follow (if lists are empty that means 2 0xff at
+                // positions 7 and 8.
+                // A patch set list can only go up to 0xFC position, so that's why 2 lists are needed.
+                // Both lists can cover from their starting position to that + 0xFC - 1 included, and their size isn't
+                // fixed.
+                if ((*counter) < PATCH_DATA_START_POS || (*counter) > PATCH_DATA_START_POS + 1) {
+                    out = 0x00;
+                } else {
+                    out = 0xff;
+                }
+
                 (*counter)++;
-                if ((*counter) == 197) {
+                if ((*counter) == PATCH_SIZE) {
                     trade_state = TRADE_WAIT;
                 }
             } else if (trade_state == TRADE_WAIT && (in & 0x60) == 0x60) {
@@ -450,8 +464,9 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                     trade_state = READY;
                     out = 0x6f;
                 } else {
-                    out = 0x60;
-                    trade_pokemon = in - 0x60;
+                    // Select same Pokémon slot as the other person.
+                    out = in;
+                    // out = 0x60;  // First Pokémon slot.
                 }
             } else if (trade_state == TRADE_WAIT && in == 0x00) {
                 out = 0;
@@ -459,12 +474,14 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             } else if (trade_state == TRADE_DONE && (in & 0x60) == 0x60) {
                 out = in;
                 if (in == 0x61) {
-                    trade_pokemon = -1;
                     trade_state = TRADE_WAIT;
                 } else {
                     trade_state = DONE;
                 }
             } else if (trade_state == DONE && in == 0x00) {
+                // Trade finished, no more data will be sent at this moment, it's safe to refill the Pokémon group
+                // in order to regenerate TIDs. If the TID is fixed, this line can be commented out.
+                scheduled_refill = TRUE;
                 out = 0;
                 trade_state = INIT;
             } else {
@@ -517,6 +534,11 @@ void main(void) {
     SC_REG = SIOF_CLOCK_INT;
     uint8_t in = 0xff;
     while (TRUE) {
+        if (scheduled_refill) {
+            fill_pokemon_team();
+            scheduled_refill = FALSE;
+        }
+
         in = sio_exchange_slave(handle_byte(in, &trade_counter));
     }
 }

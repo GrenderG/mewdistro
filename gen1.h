@@ -4,6 +4,13 @@
 #include <gb/gb.h>
 #include <stdint.h>
 
+
+#define RANDOM_SEED_SIZE                10
+#define PARTY_DATA_SIZE                 418
+#define PATCH_SIZE                      197
+// Before this position all is filled with 0x00.
+#define PATCH_DATA_START_POS            7
+
 // Protocol opcodes.
 
 #define PKMN_BLANK                      0x00
