@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "gen1.h"
 
@@ -320,7 +321,7 @@ void fill_pokemon_team(void) {
     trader_packet_to_bytes(&traderPacket, DATA_BLOCK);
 }
 
-uint8_t handle_byte(uint8_t in, size_t *counter) {
+uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
     // Simple protocol explanation.
     // Steps:
     //    First synchronization
@@ -333,6 +334,22 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
     //    End
     // Note: Gen 2 also has mail data at the end (Size: 381).
     static uint8_t out;
+
+    // If the cable is disconnected or the console is not ready for more than 5 seconds, reset trading process.
+    // This method will only work if the distribution cartridge is acting as master.
+    clock_t current_time = clock();
+    if (connection_state != NOT_CONNECTED && (in == LINK_CABLE_EMPTY || in == LINK_CABLE_DISCONNECT)) {
+        if (current_time - (*last_action) > 300) {
+            connection_state = NOT_CONNECTED;
+            trade_state = INIT;
+            SC_REG = SIOF_CLOCK_INT;
+            out = PKMN_MASTER;
+            return out;
+        }
+    } else {
+        (*last_action) = current_time;
+    }
+
     switch (connection_state) {
         case NOT_CONNECTED:
             switch (in) {
@@ -376,10 +393,10 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
                     break;
                 case PKMN_MASTER:
                     // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
-                    // start again.
+                    // start again. (Should only happen if distribution cart is in Slave mode).
                     connection_state = NOT_CONNECTED;
                     trade_state = INIT;
-                    SC_REG = SIOF_CLOCK_INT;
+                    SC_REG = SIOF_CLOCK_EXT;
                     out = PKMN_SLAVE;
                     break;
 
@@ -390,52 +407,40 @@ uint8_t handle_byte(uint8_t in, size_t *counter) {
             break;
 
         case TRADE_CENTRE:
-            if (in == PKMN_MASTER && trade_state != DATA_TX_RANDOM && trade_state != DATA_TX) {
-                // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
-                // start again.
-                // TODO: If the connection is reset in the middle of DATA_TX_RANDOM or DATA_TX it will get stuck so you
-                //  need to reboot the distribution console.
-                connection_state = NOT_CONNECTED;
-                trade_state = INIT;
-                SC_REG = SIOF_CLOCK_INT;
-                out = PKMN_SLAVE;
-                break;
-            }
-
             if (trade_state == INIT && in == 0x00) {
                 (*counter) = 0;
                 trade_state = READY;
                 out = 0x00;
-            } else if (trade_state == READY && in == 0xFD) {
+            } else if (trade_state == READY && in == TRADE_CENTRE_READY) {
                 trade_state = DETECTED;
                 out = 0xFD;
-            } else if (trade_state == DETECTED && in != 0xFD) {
+            } else if (trade_state == DETECTED && in != TRADE_CENTRE_READY) {
                 // Here random data seed is sent... Just ignore, we don't need it.
                 out = in;
                 trade_state = DATA_TX_RANDOM;
-            } else if (trade_state == DATA_TX_RANDOM && in == 0xFD) {
+            } else if (trade_state == DATA_TX_RANDOM && in == TRADE_CENTRE_READY) {
                 trade_state = DATA_TX_WAIT;
                 out = 0xFD;
-            } else if (trade_state == DATA_TX_WAIT && in == 0xFD) {
+            } else if (trade_state == DATA_TX_WAIT && in == TRADE_CENTRE_READY) {
                 out = 0x00;
-            } else if (trade_state == DATA_TX_WAIT && in != 0xFD) {
+            } else if (trade_state == DATA_TX_WAIT && in != TRADE_CENTRE_READY) {
                 (*counter) = 0;
                 // send first byte
                 out = DATA_BLOCK[(*counter)];
-                INPUT_BLOCK[(*counter)] = in;
+                //INPUT_BLOCK[(*counter)] = in;
                 trade_state = DATA_TX;
                 (*counter)++;
             } else if (trade_state == DATA_TX) {
                 out = DATA_BLOCK[(*counter)];
-                INPUT_BLOCK[(*counter)] = in;
+                //INPUT_BLOCK[(*counter)] = in;
                 (*counter)++;
                 if ((*counter) == PARTY_DATA_SIZE) {
                     trade_state = DATA_TX_PATCH;
                 }
-            } else if (trade_state == DATA_TX_PATCH && in == 0xFD) {
+            } else if (trade_state == DATA_TX_PATCH && in == TRADE_CENTRE_READY) {
                 (*counter) = 0;
                 out = 0xFD;
-            } else if (trade_state == DATA_TX_PATCH && in != 0xFD) {
+            } else if (trade_state == DATA_TX_PATCH && in != TRADE_CENTRE_READY) {
                 // TODO: This is a hackfix, proper patch data handling is needed (0xFE bytes need to be replaced with
                 //  0xFF and their positions added to the patch lists). We are just sending emtpy lists for now.
 
@@ -534,16 +539,21 @@ void main(void) {
 
     disable_interrupts();
 
+    uint8_t in = 0xff;
     size_t trade_counter = 0;
+    clock_t last_action = clock();
 
     SC_REG = SIOF_CLOCK_INT;
-    uint8_t in = 0xff;
     while (TRUE) {
         if (scheduled_refill) {
             fill_pokemon_team();
             scheduled_refill = FALSE;
         }
 
-        in = sio_exchange_slave(handle_byte(in, &trade_counter));
+        // Need to wait a bit before sending each byte. This is only needed if the distribution cartridge is acting as
+        // master.
+        delay(16);
+
+        in = sio_exchange_master(handle_byte(in, &trade_counter, &last_action));
     }
 }

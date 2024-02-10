@@ -36,7 +36,10 @@
 #define PKMN_BREAK_LINK                 ITEM_3_SELECTED
 #define PKMN_TIME_CAPSULE_SELECT        0xD1
 
-#define TRADE_CENTRE_WAIT               0xFD
+#define TRADE_CENTRE_READY              0xFD
+#define TRADE_CENTRE_WAIT               0xFE
+#define LINK_CABLE_EMPTY                0x00
+#define LINK_CABLE_DISCONNECT           0xFF
 
 
 // Text definitions.
