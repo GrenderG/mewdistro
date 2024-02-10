@@ -223,8 +223,8 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out, ui
     res[FULL_LEN + 2] = 0x00;
 
     // Write the bytes to *out.
-    uint8_t tmp_patch_list_1[100] = {0};
-    uint8_t tmp_patch_list_2[100] = {0};
+    uint8_t tmp_patch_list_1[100];
+    uint8_t tmp_patch_list_2[100];
     size_t tmp_list_1_counter = 0;
     size_t tmp_list_2_counter = 0;
     for (size_t i = 0; i < PARTY_DATA_SIZE; i++) {
