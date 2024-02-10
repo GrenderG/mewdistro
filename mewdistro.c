@@ -55,6 +55,8 @@ enum connection_state_t connection_state = NOT_CONNECTED;
 enum trade_state_t trade_state = INIT;
 uint8_t INPUT_BLOCK[PARTY_DATA_SIZE];
 uint8_t DATA_BLOCK[PARTY_DATA_SIZE];
+uint8_t PATCH_INPUT_BLOCK[PATCH_SIZE];
+uint8_t PATCH_BLOCK[PATCH_SIZE] = {0};
 uint8_t scheduled_refill = TRUE;
 unsigned char name[11] = {
         pokechar_E,
@@ -162,7 +164,7 @@ void selected_pokemon_to_bytes(struct SelectedPokemon *pSelectedPokemon, uint8_t
     }
 }
 
-void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
+void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out, uint8_t *patch) {
     uint8_t name_bytes[NAME_LEN];
     uint8_t selected_pokemon_bytes[SELP_LEN];
     uint8_t pokemon_bytes[POKE_LEN];
@@ -219,9 +221,43 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out) {
     res[FULL_LEN] = 0x00;
     res[FULL_LEN + 1] = 0x00;
     res[FULL_LEN + 2] = 0x00;
-    // Write the bytes to *out
-    for (size_t i = 0; i < (FULL_LEN + 3); i++) {
+
+    // Write the bytes to *out.
+    uint8_t tmp_patch_list_1[100] = {0};
+    uint8_t tmp_patch_list_2[100] = {0};
+    size_t tmp_list_1_counter = 0;
+    size_t tmp_list_2_counter = 0;
+    for (size_t i = 0; i < PARTY_DATA_SIZE; i++) {
         out[i] = res[i];
+        // Replace 0xFE with 0xFF (they will later be replaced again by the receiving game using the data we send in
+        // the patch section).
+        if (i >= 19 && out[i] == 0xFE) {
+            out[i] = 0xFF;
+            if (i < 0xFC) {
+                tmp_patch_list_1[tmp_list_1_counter++] = i - 19 + 1;
+            } else {
+                tmp_patch_list_2[tmp_list_2_counter++] = i - 0xFC - 19 + 1;
+            }
+        }
+    }
+    tmp_patch_list_1[tmp_list_1_counter++] = 0xFF;
+    tmp_patch_list_2[tmp_list_2_counter++] = 0xFF;
+
+    size_t tmp_list_1_set_counter = 0;
+    size_t tmp_list_2_set_counter = 0;
+    // Now fill patch data.
+    for (size_t i = PATCH_DATA_START_POS; i < PATCH_SIZE; i++) {
+        if (tmp_list_1_counter > 0) {
+            patch[i] = tmp_patch_list_1[tmp_list_1_set_counter++];
+            tmp_list_1_counter--;
+        } else if (tmp_list_2_counter > 0) {
+            patch[i] = tmp_patch_list_2[tmp_list_2_set_counter++];
+            tmp_list_2_counter--;
+        }
+
+        if (tmp_list_1_counter == 0 && tmp_list_2_counter == 0) {
+            break;
+        }
     }
 }
 
@@ -318,7 +354,7 @@ void fill_pokemon_team(void) {
         }
     }
 
-    trader_packet_to_bytes(&traderPacket, DATA_BLOCK);
+    trader_packet_to_bytes(&traderPacket, DATA_BLOCK, PATCH_BLOCK);
 }
 
 uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
@@ -420,14 +456,14 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                 out = 0x00;
             } else if (trade_state == READY && in == TRADE_CENTRE_READY) {
                 trade_state = DETECTED;
-                out = 0xFD;
+                out = TRADE_CENTRE_READY;
             } else if (trade_state == DETECTED && in != TRADE_CENTRE_READY) {
                 // Here random data seed is sent... Just ignore, we don't need it.
                 out = in;
                 trade_state = DATA_TX_RANDOM;
             } else if (trade_state == DATA_TX_RANDOM && in == TRADE_CENTRE_READY) {
                 trade_state = DATA_TX_WAIT;
-                out = 0xFD;
+                out = TRADE_CENTRE_READY;
             } else if (trade_state == DATA_TX_WAIT && in == TRADE_CENTRE_READY) {
                 out = 0x00;
             } else if (trade_state == DATA_TX_WAIT && in != TRADE_CENTRE_READY) {
@@ -446,18 +482,15 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                 }
             } else if (trade_state == DATA_TX_PATCH && in == TRADE_CENTRE_READY) {
                 (*counter) = 0;
-                out = 0xFD;
+                out = TRADE_CENTRE_READY;
             } else if (trade_state == DATA_TX_PATCH && in != TRADE_CENTRE_READY) {
-                // TODO: This is a hackfix, proper patch data handling is needed (0xFE bytes need to be replaced with
-                //  0xFF and their positions added to the patch lists). We are just sending emtpy lists for now.
-
                 // Patch data explanation:
                 // 0xFE is a value that cannot be sent, or it will be interpreted as no byte being ready by the
                 // receiving console. So, if one byte should be 0xFE, it's converted to 0xFF, and its position is added
                 // to the patch set lists (they are two, each is FF-terminated). The receiving end converts the
                 // positions in the patch set data back to 0xFE.
                 // First 6 bytes are always 0x00, then the 2 list follow (if lists are empty that means 2 0xff at
-                // positions 7 and 8.
+                // positions 7 and 8).
                 // A patch set list can only go up to 0xFC position, so that's why 2 lists are needed, you need to
                 // subtract 252 (0xFC) from the second one.
                 // Both lists can cover from their starting position to that + 0xFC - 1 included, and their size isn't
@@ -466,12 +499,8 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                 // byte at position 46 and another one at position 284:
                 // 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x1C 0xFF 0x0E 0xFF 0x00 ...
                 // 0x1C being 46-19+1 and 0x0E being 284-252-19+1. We add +1 since the index is 1-based.
-                if ((*counter) < PATCH_DATA_START_POS || (*counter) > PATCH_DATA_START_POS + 1) {
-                    out = 0x00;
-                } else {
-                    out = 0xff;
-                }
-
+                out = PATCH_BLOCK[(*counter)];
+                //PATCH_INPUT_BLOCK[(*counter)] = in;
                 (*counter)++;
                 if ((*counter) == PATCH_SIZE) {
                     trade_state = TRADE_WAIT;
