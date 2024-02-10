@@ -12,4 +12,6 @@ More information about it can be found here:
 ## Acknowledgements
 
 - Based on: [Pokemon Distribution ROM](https://github.com/breadbored/Pokemon-Distribution-ROM) ([Original license](https://github.com/breadbored/Pokemon-Distribution-ROM/blob/main/LICENSE.md))
-- Used for cross-referencing: [Flipper Zero Game Boy Pokemon Trading](https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Pokemon-Trading)
+- Used for referencing: [Spoofing Pokémon trades with the Stellaris LaunchPad](http://www.adanscotney.com/2014/01/spoofing-pokemon-trades-with-stellaris.html)
+- Thanks to [toxa](https://github.com/untoxa) for helping me with optimizations.
+- Thanks to [Lorenzooone](https://github.com/Lorenzooone) for helping me understand some parts of the trading protocol.
