@@ -367,6 +367,11 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                     connection_state = CONNECTED;
                     out = PKMN_CONNECTED;
                     break;
+
+                default:
+                    // By default, answer with MASTER opcode constantly.
+                    out = PKMN_MASTER;
+                    break;
             }
             break;
 
