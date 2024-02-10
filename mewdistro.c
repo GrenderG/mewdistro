@@ -353,8 +353,10 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
     switch (connection_state) {
         case NOT_CONNECTED:
             switch (in) {
+                // Note: If master, always reply with PKMN_MASTER to 0x01 and 0x02. If slave, always reply with
+                // PKMN_SLAVE.
                 case PKMN_MASTER:
-                    out = PKMN_SLAVE;
+                    out = PKMN_MASTER;
                     break;
                 case PKMN_SLAVE:
                     out = PKMN_MASTER;
@@ -369,7 +371,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                     break;
 
                 default:
-                    // By default, answer with MASTER opcode constantly.
+                    // By default, answer constantly with PKMN_MASTER (or PKMN_SLAVE if acting as slave).
                     out = PKMN_MASTER;
                     break;
             }
@@ -557,7 +559,7 @@ void main(void) {
 
         // Need to wait a bit before sending each byte. This is only needed if the distribution cartridge is acting as
         // master.
-        delay(20);
+        delay(16);
 
         in = sio_exchange_master(handle_byte(in, &trade_counter, &last_action));
     }
