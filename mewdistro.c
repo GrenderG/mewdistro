@@ -557,7 +557,7 @@ void main(void) {
 
         // Need to wait a bit before sending each byte. This is only needed if the distribution cartridge is acting as
         // master.
-        delay(16);
+        delay(20);
 
         in = sio_exchange_master(handle_byte(in, &trade_counter, &last_action));
     }
