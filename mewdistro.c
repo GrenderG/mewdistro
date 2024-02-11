@@ -434,14 +434,14 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                     connection_state = NOT_CONNECTED;
                     out = PKMN_BREAK_LINK;
                     break;
-                case PKMN_MASTER:
-                    // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
-                    // start again. (Should only happen if distribution cart is in Slave mode).
-                    connection_state = NOT_CONNECTED;
-                    trade_state = INIT;
-                    SC_REG = SIOF_CLOCK_EXT;
-                    out = PKMN_SLAVE;
-                    break;
+                //case PKMN_MASTER:
+                //    // Reset connection; something went wrong in the last trade (console reset, etc) and we need to
+                //    // start again. (Should only happen if distribution cart is in Slave mode).
+                //    connection_state = NOT_CONNECTED;
+                //    trade_state = INIT;
+                //    SC_REG = SIOF_CLOCK_EXT;
+                //    out = PKMN_SLAVE;
+                //    break;
 
                 default:
                     out = in;
