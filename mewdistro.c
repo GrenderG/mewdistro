@@ -53,10 +53,10 @@ const unsigned char mew_map[] = {
 
 enum connection_state_t connection_state = NOT_CONNECTED;
 enum trade_state_t trade_state = INIT;
-uint8_t INPUT_BLOCK[PARTY_DATA_SIZE];
+//uint8_t INPUT_BLOCK[PARTY_DATA_SIZE];
 uint8_t DATA_BLOCK[PARTY_DATA_SIZE];
-uint8_t PATCH_INPUT_BLOCK[PATCH_SIZE];
-uint8_t PATCH_BLOCK[PATCH_SIZE] = {0};
+//uint8_t PATCH_INPUT_BLOCK[PATCH_SIZE];
+uint8_t PATCH_BLOCK[PATCH_SIZE];
 uint8_t scheduled_refill = TRUE;
 unsigned char name[11] = {
         pokechar_E,
@@ -164,7 +164,11 @@ void selected_pokemon_to_bytes(struct SelectedPokemon *pSelectedPokemon, uint8_t
     }
 }
 
-void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out, uint8_t *patch) {
+void trader_packet_to_bytes(struct TraderPacket *pTraderPacket) {
+    // Reinitialize to 0.
+    memset(DATA_BLOCK, 0, sizeof(DATA_BLOCK));
+    memset(PATCH_BLOCK, 0, sizeof(PATCH_BLOCK));
+
     uint8_t name_bytes[NAME_LEN];
     uint8_t selected_pokemon_bytes[SELP_LEN];
     uint8_t pokemon_bytes[POKE_LEN];
@@ -228,11 +232,11 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out, ui
     size_t tmp_list_1_counter = 0;
     size_t tmp_list_2_counter = 0;
     for (size_t i = 0; i < PARTY_DATA_SIZE; i++) {
-        out[i] = res[i];
+        DATA_BLOCK[i] = res[i];
         // Replace 0xFE with 0xFF (they will later be replaced again by the receiving game using the data we send in
         // the patch section).
-        if (i >= 19 && out[i] == 0xFE) {
-            out[i] = 0xFF;
+        if (i >= 19 && DATA_BLOCK[i] == 0xFE) {
+            DATA_BLOCK[i] = 0xFF;
             if (i < 0xFC) {
                 tmp_patch_list_1[tmp_list_1_counter++] = i - 19 + 1;
             } else {
@@ -248,10 +252,10 @@ void trader_packet_to_bytes(struct TraderPacket *pTraderPacket, uint8_t *out, ui
     // Now fill patch data.
     for (size_t i = PATCH_DATA_START_POS; i < PATCH_SIZE; i++) {
         if (tmp_list_1_counter > 0) {
-            patch[i] = tmp_patch_list_1[tmp_list_1_set_counter++];
+            PATCH_BLOCK[i] = tmp_patch_list_1[tmp_list_1_set_counter++];
             tmp_list_1_counter--;
         } else if (tmp_list_2_counter > 0) {
-            patch[i] = tmp_patch_list_2[tmp_list_2_set_counter++];
+            PATCH_BLOCK[i] = tmp_patch_list_2[tmp_list_2_set_counter++];
             tmp_list_2_counter--;
         }
 
@@ -354,7 +358,7 @@ void fill_pokemon_team(void) {
         }
     }
 
-    trader_packet_to_bytes(&traderPacket, DATA_BLOCK, PATCH_BLOCK);
+    trader_packet_to_bytes(&traderPacket);
 }
 
 uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
@@ -575,9 +579,9 @@ void main(void) {
 
     disable_interrupts();
 
-    uint8_t in = 0xff;
-    size_t trade_counter = 0;
-    clock_t last_action = clock();
+    static uint8_t in = 0xff;
+    static size_t trade_counter = 0;
+    static clock_t last_action = 0;
 
     SC_REG = SIOF_CLOCK_INT;
     while (TRUE) {
