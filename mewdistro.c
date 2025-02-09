@@ -59,6 +59,7 @@ uint8_t DATA_BLOCK[PARTY_DATA_SIZE];
 uint8_t PATCH_BLOCK[PATCH_SIZE];
 uint8_t scheduled_refill = TRUE;
 unsigned char name[11] = {
+        // OT Name
         pokechar_E,
         pokechar_U,
         pokechar_R,
@@ -97,7 +98,7 @@ typedef struct TraderPacket {
 } TraderPacket;
 
 void party_member_to_bytes(struct PartyMember *pPartyMember, uint8_t *out) {
-    uint8_t res[44] = {
+    uint8_t res[POKE_SIZE] = {
             pPartyMember->pokemon,
             (uint8_t)(pPartyMember->current_hp >> 8),
             (uint8_t)(pPartyMember->current_hp & 0x00FF),
@@ -143,13 +144,13 @@ void party_member_to_bytes(struct PartyMember *pPartyMember, uint8_t *out) {
             (uint8_t)(pPartyMember->special >> 8),
             (uint8_t)(pPartyMember->special & 0x00FF),
     };
-    for (size_t i = 0; i < 44; i++) {
+    for (size_t i = 0; i < POKE_SIZE; i++) {
         out[i] = res[i];
     }
 }
 
 void selected_pokemon_to_bytes(struct SelectedPokemon *pSelectedPokemon, uint8_t *out) {
-    uint8_t res[8] = {
+    uint8_t res[SELP_LEN] = {
             pSelectedPokemon->number,
             pSelectedPokemon->pokemon[0],
             pSelectedPokemon->pokemon[1],
@@ -159,7 +160,7 @@ void selected_pokemon_to_bytes(struct SelectedPokemon *pSelectedPokemon, uint8_t
             pSelectedPokemon->pokemon[5],
             0xFF,
     };
-    for (size_t i = 0; i < 8; i++) {
+    for (size_t i = 0; i < SELP_LEN; i++) {
         out[i] = res[i];
     }
 }
@@ -341,10 +342,10 @@ void fill_pokemon_team(void) {
         pPartyMember->move3_pp = 0;
         pPartyMember->move4_pp = 0;
 
-        pPartyMember->attack = 100;
-        pPartyMember->defense = 100;
-        pPartyMember->speed = 100;
-        pPartyMember->special = 100;
+        pPartyMember->attack = 16;
+        pPartyMember->defense = 15;
+        pPartyMember->speed = 16;
+        pPartyMember->special = 15;
     }
 
     for (size_t i = 0; i < 6; i++) {
@@ -372,7 +373,7 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
     //    0xFD until the other gameboy is ready and answers 0xFD
     //    Patch set (Size: 197)
     //    End
-    // Note: Gen 2 also has mail data at the end (Size: 381).
+    // Note: Gen 2 also has mail data at the end (Size: 385).
     static uint8_t out;
 
     // If the cable is disconnected or the console is not ready for more than 5 seconds, reset trading process.
@@ -403,6 +404,9 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                     break;
                 case PKMN_BLANK:
                     out = PKMN_BLANK;
+                    break;
+                case PKMN_BREAK_LINK:
+                    out = PKMN_BREAK_LINK;
                     break;
                 case PKMN_CONNECTED_TIME_CAPSULE:
                 case PKMN_CONNECTED:
@@ -529,11 +533,12 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                     trade_state = DONE;
                 }
             } else if (trade_state == DONE && in == 0x00) {
+                out = 0;
+                trade_state = INIT;
                 // Trade finished, no more data will be sent at this moment, it's safe to refill the Pokémon group
                 // in order to regenerate TIDs. If the TID is fixed, this line can be commented out.
                 scheduled_refill = TRUE;
-                out = 0;
-                trade_state = INIT;
+
             } else {
                 out = in;
             }
