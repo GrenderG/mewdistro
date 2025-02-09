@@ -538,7 +538,6 @@ uint8_t handle_byte(uint8_t in, size_t *counter, clock_t *last_action) {
                 // Trade finished, no more data will be sent at this moment, it's safe to refill the Pokémon group
                 // in order to regenerate TIDs. If the TID is fixed, this line can be commented out.
                 scheduled_refill = TRUE;
-
             } else {
                 out = in;
             }
