@@ -9,8 +9,13 @@ More information about it can be found here:
 - [Gen I-V Event Contributions Message 1](https://projectpokemon.org/home/forums/topic/37431-gen-i-v-event-contributions-thread/?do=findComment&comment=254958)
 - [Gen I-V Event Contributions Message 2](https://projectpokemon.org/home/forums/topic/37431-gen-i-v-event-contributions-thread/?do=findComment&comment=255300)
 
+This project can be easily modified to transfer any Pokémon.
+
 ## Building
 You need **gbdk-2020** to build the project (version 4.20 was used at the time of writing this but I guess newer ones will also work). Then simply run `make`.
+
+## Related Projects
+- [Celebidistro](https://github.com/GrenderG/celebidistro)
 
 ## Acknowledgements
 
